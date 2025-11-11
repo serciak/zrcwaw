@@ -10,5 +10,6 @@ class Todo(Base):
     due_date = Column(String(32), nullable=True)
     completed = Column(Boolean, default=False)
     image_key = Column(String(512), nullable=True)
+    user_id = Column(String(36), index=True, nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 

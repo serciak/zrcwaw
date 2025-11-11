@@ -17,4 +17,3 @@ class StorageBackend(ABC):
     async def delete_file(self, key: str) -> bool:
         """Delete a file"""
         pass
-

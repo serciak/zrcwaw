@@ -21,6 +21,10 @@ services:
 
   frontend:
     build: ./frontend
+    environment:
+      API_URL: http://localhost:8000
+      COGNITO_USER_POOL_ID: XXX
+      COGNITO_USER_POOL_WEB_CLIENT_ID: XXX
     depends_on: [backend]
     ports: ["8080:80"]
 
