@@ -3,7 +3,6 @@ import type {Todo, TodoCreate} from "./types";
 import {getApiUrl} from "./config.ts";
 import { fetchAuthSession } from 'aws-amplify/auth';
 
-
 const api = axios.create({
     baseURL: getApiUrl()
 });
@@ -14,6 +13,7 @@ api.interceptors.request.use(
         const token = session.tokens?.idToken?.toString();
 
         config.headers["Authorization"] = `Bearer ${token}`;
+
         return config;
     },
     error => {
@@ -56,7 +56,12 @@ export async function markComplete(todoId: number): Promise<Todo> {
 
 
 export function fileUrl(key?: string) {
-    console.log("Generating file URL for key:", key);
     if (!key) return undefined;
     return `${getApiUrl()}/api/files/${key}`;
+}
+
+
+export function isImageKey(key?: string): boolean {
+    if (!key) return false;
+    return /\.(png|jpe?g|gif|webp|bmp|svg|avif)$/i.test(key);
 }

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import type {Todo} from './types';
-import { getTodo, fileUrl } from './api';
+import {getTodo, fileUrl, isImageKey} from './api';
 import './TodoDetail.css';
 
 interface TodoDetailProps {
@@ -81,11 +81,15 @@ export function TodoDetail({ todoId, onClose }: TodoDetailProps) {
             {todo.image_key && (
               <div className="detail-section">
                 <h3>Załącznik</h3>
-                <img
-                  src={fileUrl(todo.image_key)}
-                  alt="Todo attachment"
-                  className="detail-image"
-                />
+                <a href={fileUrl(todo.image_key)} download target="_blank" rel="noopener noreferrer" style={{ textDecoration: "none" }}>
+                    {isImageKey(todo.image_key) ? (
+                        <img src={fileUrl(todo.image_key)} alt="Todo attachment" loading="lazy" className="detail-image"/>
+                    ) : (
+                        <div className="todo-attachment">
+                            📎 Załącznik
+                        </div>
+                    )}
+                </a>
               </div>
             )}
 

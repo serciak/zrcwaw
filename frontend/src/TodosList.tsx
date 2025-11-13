@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import './App.css';
-import { createTodo, listTodos, markComplete, uploadFile, fileUrl } from './api';
+import { createTodo, listTodos, markComplete, uploadFile, fileUrl, isImageKey } from './api';
 import type {Todo, TodoCreate} from './types';
 import { TodoDetail } from './TodoDetail';
 
@@ -28,9 +28,6 @@ function TodosList() {
       setLoading(true);
       const data = await listTodos();
       setTodos(data);
-    } catch (error) {
-      console.error('Error loading todos:', error);
-      alert('Błąd podczas ładowania zadań');
     } finally {
       setLoading(false);
     }
@@ -38,15 +35,10 @@ function TodosList() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-
-    if (!formData.title.trim()) {
-      alert('Tytuł jest wymagany');
-      return;
-    }
+    if (!formData.title.trim()) return;
 
     try {
       setUploading(true);
-
       let imageKey = formData.image_key;
       if (selectedFile) {
         imageKey = await uploadFile(selectedFile);
@@ -64,9 +56,6 @@ function TodosList() {
       setSelectedFile(null);
       setShowForm(false);
       await loadTodos();
-    } catch (error) {
-      console.error('Error creating todo:', error);
-      alert('Błąd podczas tworzenia zadania');
     } finally {
       setUploading(false);
     }
@@ -125,29 +114,11 @@ function TodosList() {
 
         <div className="actions-bar">
           <div className="filter-buttons">
-            <button
-              className={`filter-btn ${filter === 'all' ? 'active' : ''}`}
-              onClick={() => setFilter('all')}
-            >
-              Wszystkie
-            </button>
-            <button
-              className={`filter-btn ${filter === 'active' ? 'active' : ''}`}
-              onClick={() => setFilter('active')}
-            >
-              Aktywne
-            </button>
-            <button
-              className={`filter-btn ${filter === 'completed' ? 'active' : ''}`}
-              onClick={() => setFilter('completed')}
-            >
-              Ukończone
-            </button>
+            <button className={`filter-btn ${filter === 'all' ? 'active' : ''}`} onClick={() => setFilter('all')}>Wszystkie</button>
+            <button className={`filter-btn ${filter === 'active' ? 'active' : ''}`} onClick={() => setFilter('active')}>Aktywne</button>
+            <button className={`filter-btn ${filter === 'completed' ? 'active' : ''}`} onClick={() => setFilter('completed')}>Ukończone</button>
           </div>
-          <button
-            className="add-btn"
-            onClick={() => setShowForm(!showForm)}
-          >
+          <button className="add-btn" onClick={() => setShowForm(!showForm)}>
             {showForm ? '✕ Anuluj' : '+ Dodaj zadanie'}
           </button>
         </div>
@@ -156,50 +127,23 @@ function TodosList() {
           <form className="todo-form" onSubmit={handleSubmit}>
             <div className="form-group">
               <label htmlFor="title">Tytuł *</label>
-              <input
-                id="title"
-                type="text"
-                value={formData.title}
-                onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                placeholder="Wpisz tytuł zadania..."
-                required
-              />
+              <input id="title" type="text" value={formData.title} onChange={(e) => setFormData({ ...formData, title: e.target.value })} required />
             </div>
 
             <div className="form-group">
               <label htmlFor="description">Opis</label>
-              <textarea
-                id="description"
-                value={formData.description || ''}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                placeholder="Dodaj opis zadania..."
-                rows={3}
-              />
+              <textarea id="description" value={formData.description || ''} onChange={(e) => setFormData({ ...formData, description: e.target.value })} rows={3} />
             </div>
 
             <div className="form-group">
               <label htmlFor="due_date">Termin wykonania</label>
-              <input
-                id="due_date"
-                type="date"
-                value={formData.due_date || ''}
-                onChange={(e) => setFormData({ ...formData, due_date: e.target.value })}
-              />
+              <input id="due_date" type="date" value={formData.due_date || ''} onChange={(e) => setFormData({ ...formData, due_date: e.target.value })} />
             </div>
 
             <div className="form-group">
-              <label htmlFor="image">Załącznik obrazu</label>
-              <input
-                id="image"
-                type="file"
-                accept="image/*"
-                onChange={handleFileChange}
-              />
-              {selectedFile && (
-                <div className="file-preview">
-                  📎 {selectedFile.name}
-                </div>
-              )}
+              <label htmlFor="attachment">Załącznik</label>
+              <input id="attachment" type="file" onChange={handleFileChange} />
+              {selectedFile && <div className="file-preview">📎 {selectedFile.name}</div>}
             </div>
 
             <button type="submit" className="submit-btn" disabled={uploading}>
@@ -237,14 +181,10 @@ function TodosList() {
                         {todo.title}
                       </h3>
                     </div>
-                    {todo.completed && (
-                      <span className="completed-badge">✓ Ukończono</span>
-                    )}
+                    {todo.completed && <span className="completed-badge">✓ Ukończono</span>}
                   </div>
 
-                  {todo.description && (
-                    <p className="todo-description">{todo.description}</p>
-                  )}
+                  {todo.description && <p className="todo-description">{todo.description}</p>}
 
                   {todo.due_date && (
                     <div className="todo-due-date">
@@ -253,13 +193,17 @@ function TodosList() {
                   )}
 
                   {todo.image_key && (
-                    <div className="todo-image">
-                      <img
-                        src={fileUrl(todo.image_key)}
-                        alt="Todo attachment"
-                        loading="lazy"
-                      />
-                    </div>
+                    <a href={fileUrl(todo.image_key)} download target="_blank" rel="noopener noreferrer" style={{ textDecoration: "none" }}>
+                        {isImageKey(todo.image_key) ? (
+                            <div className="todo-image">
+                                <img src={fileUrl(todo.image_key)} alt="Todo attachment" loading="lazy"/>
+                            </div>
+                        ) : (
+                            <div className="todo-attachment">
+                                📎 Załącznik
+                            </div>
+                        )}
+                    </a>
                   )}
                 </div>
               ))}
@@ -268,15 +212,9 @@ function TodosList() {
         </div>
       </div>
 
-      {selectedTodoId && (
-        <TodoDetail
-          todoId={selectedTodoId}
-          onClose={() => setSelectedTodoId(null)}
-        />
-      )}
+      {selectedTodoId && <TodoDetail todoId={selectedTodoId} onClose={() => setSelectedTodoId(null)} />}
     </div>
   );
 }
 
 export default TodosList;
-

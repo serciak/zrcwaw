@@ -24,7 +24,7 @@ data "aws_subnets" "default" {
   }
 }
 
-# Role IAM: użyj istniejącej LabRole jako taskRole i executionRole
+# Role IAM
 data "aws_iam_role" "labrole" {
   name = "LabRole"
 }
@@ -70,6 +70,23 @@ resource "aws_cognito_user_pool_client" "web" {
     id_token      = "minutes"
     refresh_token = "days"
   }
+}
+
+resource "random_id" "suffix" {
+  byte_length = 4
+}
+
+resource "aws_s3_bucket" "files" {
+  bucket = "todos-files-bucket-${random_id.suffix.hex}"
+  force_destroy = true
+}
+
+resource "aws_s3_bucket_public_access_block" "files" {
+  bucket                  = aws_s3_bucket.files.id
+  block_public_acls       = true
+  block_public_policy     = true
+  ignore_public_acls      = true
+  restrict_public_buckets = true
 }
 
 # Log groups
@@ -301,7 +318,8 @@ resource "aws_ecs_task_definition" "backend" {
         { name = "MEDIA_ROOT",    value = "/app/uploads" },
         { name = "CORS_ORIGINS",  value = "*" },
         { name = "DATABASE_URL", value = "postgresql+psycopg2://${var.db_username}:${var.db_password}@${aws_db_instance.postgres.address}:5432/${var.db_name}" },
-        { name = "COGNITO_REGION", value = var.region },
+        { name = "AWS_REGION", value = var.region },
+        { name = "S3_BUCKET_NAME",  value = aws_s3_bucket.files.bucket },
         { name = "COGNITO_USER_POOL_ID", value = aws_cognito_user_pool.users.id },
         { name = "COGNITO_USER_POOL_WEB_CLIENT_ID", value = aws_cognito_user_pool_client.web.id }
       ]
