@@ -5,12 +5,12 @@ variable "region" {
 }
 
 variable "backend_image" {
-  description = "Docker image for backend (Docker Hub), e.g. docker.io/serciak/my-backend:latest"
+  description = "Docker image for backend"
   type        = string
 }
 
 variable "frontend_image" {
-  description = "Docker image for frontend (Docker Hub), e.g. docker.io/serciak/my-frontend:latest"
+  description = "Docker image for frontend"
   type        = string
 }
 
