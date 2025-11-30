@@ -3,23 +3,15 @@ import json
 import psycopg2
 import boto3
 import logging
-
-# -----------------------------
-# Logging configuration
-# -----------------------------
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
-# Optional: include timestamp + log level
 formatter = logging.Formatter(
     "%(asctime)s - %(levelname)s - %(message)s"
 )
 for handler in logger.handlers:
     handler.setFormatter(formatter)
 
-# -----------------------------
-# Environment variables
-# -----------------------------
 DB_HOST = os.environ["DB_HOST"]
 DB_NAME = os.environ["DB_NAME"]
 DB_USER = os.environ["DB_USER"]
@@ -34,7 +26,6 @@ def lambda_handler(event, context):
     logger.info("=== Lambda execution started ===")
     logger.info(f"Incoming event: {json.dumps(event)}")
 
-    # Log context details
     logger.info(f"Request ID: {context.aws_request_id}")
     logger.info(f"Function name: {context.function_name}")
     logger.info(f"Memory limit: {context.memory_limit_in_mb} MB")
@@ -42,9 +33,6 @@ def lambda_handler(event, context):
     deleted_todos = 0
     deleted_files = 0
 
-    # -----------------------------
-    # Connect to PostgreSQL
-    # -----------------------------
     logger.info(
         f"Connecting to RDS: host={DB_HOST}, db={DB_NAME}, user={DB_USER}"
     )
@@ -77,9 +65,6 @@ def lambda_handler(event, context):
             logger.info(f"Todo IDs to delete: {todo_ids}")
             logger.info(f"S3 keys to delete: {image_keys}")
 
-            # -----------------------------
-            # Delete todos from DB
-            # -----------------------------
             if todo_ids:
                 cur.execute("DELETE FROM todos WHERE id = ANY(%s)", (todo_ids,))
                 deleted_todos = cur.rowcount
@@ -87,9 +72,6 @@ def lambda_handler(event, context):
             else:
                 logger.info("No todos to delete.")
 
-            # -----------------------------
-            # Delete S3 objects in batches
-            # -----------------------------
             if image_keys:
                 objects = [{"Key": key} for key in image_keys]
 
@@ -119,7 +101,6 @@ def lambda_handler(event, context):
             else:
                 logger.info("No S3 files to delete.")
 
-        # Commit the DB transaction
         conn.commit()
         logger.info("Database commit successful.")
 
@@ -132,9 +113,6 @@ def lambda_handler(event, context):
         conn.close()
         logger.info("Database connection closed.")
 
-    # -----------------------------
-    # Summary
-    # -----------------------------
     logger.info(
         f"=== Lambda execution completed === "
         f"Deleted todos: {deleted_todos}, Deleted files: {deleted_files}"

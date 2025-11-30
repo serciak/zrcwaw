@@ -21,7 +21,6 @@ JWKS_CACHE_DURATION = 3600
 
 
 def get_jwks() -> Dict:
-    """Fetch and cache JWKs from Cognito"""
     global jwks_cache, jwks_cache_time
 
     current_time = time.time()
@@ -39,11 +38,6 @@ def get_jwks() -> Dict:
 
 
 def verify_token(token: str) -> Dict:
-    """
-    Verify a Cognito JWT token
-    Returns the decoded token payload if valid
-    Raises HTTPException if invalid
-    """
     try:
         # Get the kid from the token header
         headers = jwt.get_unverified_headers(token)
@@ -108,9 +102,5 @@ def verify_token(token: str) -> Dict:
 async def get_current_user(
         credentials: HTTPAuthorizationCredentials = Security(security)
 ) -> Dict:
-    """
-    FastAPI dependency to get current authenticated user
-    Usage: user = Depends(get_current_user)
-    """
     token = credentials.credentials
     return verify_token(token)

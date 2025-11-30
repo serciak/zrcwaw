@@ -5,8 +5,8 @@ const cfg = getCognitoConfig();
 const awsconfig = {
   Auth: {
     Cognito: {
-      userPoolId: cfg.userPoolId, // Get from Terraform output
-      userPoolClientId: cfg.userPoolWebClientId, // Get from Terraform output
+      userPoolId: cfg.userPoolId,
+      userPoolClientId: cfg.userPoolWebClientId,
     },
   },
 };

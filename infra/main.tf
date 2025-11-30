@@ -12,7 +12,7 @@ provider "aws" {
   region = var.region
 }
 
-# Default VPC i subnets (Learner Lab ma default VPC)
+# Default VPC + subnets
 data "aws_vpc" "default" {
   default = true
 }
@@ -202,7 +202,6 @@ resource "aws_security_group" "ecs_tasks_sg" {
   description = "Allow ALBs to reach ECS tasks"
   vpc_id      = data.aws_vpc.default.id
 
-  # Backend port from backend ALB
   ingress {
     description     = "Backend from ALB"
     from_port       = var.backend_port
@@ -211,7 +210,6 @@ resource "aws_security_group" "ecs_tasks_sg" {
     security_groups = [aws_security_group.alb_backend_sg.id]
   }
 
-  # Frontend port from frontend ALB
   ingress {
     description     = "Frontend from ALB"
     from_port       = var.frontend_port

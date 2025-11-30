@@ -20,20 +20,18 @@ else:
 async def upload_file(file: UploadFile = File(...), current_user = Depends(get_current_user)):
     content = await file.read()
     key = storage.save(BytesIO(content), file.filename)
-    # Zwróć URL dla wygody frontu (pre-signed dla S3 lub backendowy dla lokalnego)
+
     url = storage.get_file_url(key) or f"/api/files/{key}"
     return {"key": key, "url": url}
 
 @router.get("/{key}", summary="Download file or redirect to S3")
 def download_file(key: str):
     if USE_S3:
-        # Przekieruj do pre-signed URL (S3 zwróci poprawny Content-Type)
         url = storage.get_file_url(key)
         if not url:
             raise HTTPException(status_code=404, detail="File not found")
         return RedirectResponse(url=url, status_code=307)
 
-    # Lokalny odczyt + poprawny Content-Type i Content-Disposition dla nieobrazków
     try:
         f = storage.open(key)
         data = f.read()
