@@ -1,7 +1,7 @@
 import axios from "axios";
 import type {Todo, TodoCreate} from "./types";
 import {getApiUrl} from "./config.ts";
-import { fetchAuthSession } from 'aws-amplify/auth';
+import { getAccessToken } from "./auth";
 
 const api = axios.create({
     baseURL: getApiUrl()
@@ -9,11 +9,10 @@ const api = axios.create({
 
 api.interceptors.request.use(
     async config => {
-        const session = await fetchAuthSession();
-        const token = session.tokens?.idToken?.toString();
-
-        config.headers["Authorization"] = `Bearer ${token}`;
-
+        const token = await getAccessToken();
+        if (token) {
+            config.headers["Authorization"] = `Bearer ${token}`;
+        }
         return config;
     },
     error => {

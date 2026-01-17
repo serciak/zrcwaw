@@ -37,54 +37,14 @@ data "aws_iam_role" "labrole" {
 }
 
 # Cognito
-resource "aws_cognito_user_pool" "users" {
-  name                     = "lab-user-pool"
-  username_attributes      = ["email"]
-  auto_verified_attributes = ["email"]
-
-  password_policy {
-    minimum_length    = 8
-    require_lowercase = true
-    require_numbers   = true
-    require_symbols   = false
-    require_uppercase = true
-  }
-
-  account_recovery_setting {
-    recovery_mechanism {
-      name     = "verified_email"
-      priority = 1
-    }
-  }
-}
-
-resource "aws_cognito_user_pool_client" "web" {
-  name                 = "web-client"
-  user_pool_id         = aws_cognito_user_pool.users.id
-  generate_secret      = false
-  prevent_user_existence_errors = "ENABLED"
-
-  explicit_auth_flows = [
-    "ALLOW_USER_SRP_AUTH",
-    "ALLOW_REFRESH_TOKEN_AUTH"
-  ]
-
-  access_token_validity  = 60
-  id_token_validity      = 60
-  refresh_token_validity = 30
-  token_validity_units {
-    access_token  = "minutes"
-    id_token      = "minutes"
-    refresh_token = "days"
-  }
-}
+# (usunięte – zastąpione przez Keycloak/OIDC na ECS)
 
 resource "random_id" "suffix" {
   byte_length = 4
 }
 
 resource "aws_s3_bucket" "files" {
-  bucket = "todos-files-bucket-${random_id.suffix.hex}"
+  bucket        = "todos-files-bucket-${random_id.suffix.hex}"
   force_destroy = true
 }
 
@@ -121,33 +81,28 @@ resource "aws_security_group" "rds_sg" {
   vpc_id      = data.aws_vpc.default.id
 
   ingress {
-    description = "Postgres from ECS tasks"
-    from_port   = 5432
-    to_port     = 5432
-    protocol    = "tcp"
+    description     = "Postgres from ECS tasks"
+    from_port       = 5432
+    to_port         = 5432
+    protocol        = "tcp"
     security_groups = [aws_security_group.ecs_tasks_sg.id]
   }
 
   ingress {
-    description = "Postgres from Lambda"
-    from_port   = 5432
-    to_port     = 5432
-    protocol    = "tcp"
-    security_groups = [aws_security_group.lambda_sg.id]
+    description     = "Postgres from Keycloak ECS tasks"
+    from_port       = 5432
+    to_port         = 5432
+    protocol        = "tcp"
+    security_groups = [aws_security_group.keycloak_tasks_sg.id]
   }
 
-  egress {
-    from_port = 0
-    to_port   = 0
-    protocol  = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-}
-
-resource "aws_security_group" "lambda_sg" {
-  name        = "lambda-sg"
-  description = "Allow Lambda to access RDS"
-  vpc_id      = data.aws_vpc.default.id
+  # ingress {
+  #   description     = "Postgres from Lambda"
+  #   from_port       = 5432
+  #   to_port         = 5432
+  #   protocol        = "tcp"
+  #   security_groups = [aws_security_group.lambda_sg.id]
+  # }
 
   egress {
     from_port   = 0
@@ -157,14 +112,34 @@ resource "aws_security_group" "lambda_sg" {
   }
 }
 
+# resource "aws_security_group" "lambda_sg" {
+#   name        = "lambda-sg"
+#   description = "Allow Lambda to access RDS"
+#   vpc_id      = data.aws_vpc.default.id
+#
+#   egress {
+#     from_port   = 0
+#     to_port     = 0
+#     protocol    = "-1"
+#     cidr_blocks = ["0.0.0.0/0"]
+#   }
+# }
+
 resource "aws_security_group" "alb_backend_sg" {
   name        = "alb-backend-sg"
-  description = "Allow HTTP to backend ALB"
+  description = "Allow HTTP and HTTPS to backend ALB"
   vpc_id      = data.aws_vpc.default.id
 
   ingress {
     from_port   = 80
     to_port     = 80
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  ingress {
+    from_port   = 443
+    to_port     = 443
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
@@ -179,12 +154,19 @@ resource "aws_security_group" "alb_backend_sg" {
 
 resource "aws_security_group" "alb_frontend_sg" {
   name        = "alb-frontend-sg"
-  description = "Allow HTTP to frontend ALB"
+  description = "Allow HTTP and HTTPS to frontend ALB"
   vpc_id      = data.aws_vpc.default.id
 
   ingress {
     from_port   = 80
     to_port     = 80
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  ingress {
+    from_port   = 443
+    to_port     = 443
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
@@ -218,6 +200,7 @@ resource "aws_security_group" "ecs_tasks_sg" {
     security_groups = [aws_security_group.alb_frontend_sg.id]
   }
 
+  # Wyjście backend -> Keycloak HTTPS (Fargate -> ALB Keycloak)
   egress {
     from_port   = 0
     to_port     = 0
@@ -227,17 +210,17 @@ resource "aws_security_group" "ecs_tasks_sg" {
 }
 
 resource "aws_db_instance" "postgres" {
-  identifier              = "lab-postgres"
-  engine                  = "postgres"
-  engine_version          = "16"
-  instance_class          = "db.t3.micro"
-  allocated_storage       = 20
-  username                = var.db_username
-  password                = var.db_password
-  db_name                 = var.db_name
-  publicly_accessible     = false
-  skip_final_snapshot     = true
-  vpc_security_group_ids  = [aws_security_group.rds_sg.id]
+  identifier             = "lab-postgres"
+  engine                 = "postgres"
+  engine_version         = "16"
+  instance_class         = "db.t3.micro"
+  allocated_storage      = 20
+  username               = var.db_username
+  password               = var.db_password
+  db_name                = var.db_name
+  publicly_accessible    = false
+  skip_final_snapshot    = true
+  vpc_security_group_ids = [aws_security_group.rds_sg.id]
 }
 
 # ECS Cluster
@@ -298,10 +281,61 @@ resource "aws_lb_target_group" "frontend" {
 }
 
 # Listeners
+
+# Self-signed certificate for backend ALB
+resource "tls_private_key" "backend" {
+  algorithm = "RSA"
+  rsa_bits  = 2048
+}
+
+resource "tls_self_signed_cert" "backend" {
+  private_key_pem = tls_private_key.backend.private_key_pem
+
+  subject {
+    common_name  = "backend.local"
+    organization = "LearnerLab"
+  }
+
+  validity_period_hours = 24 * 365
+
+  allowed_uses = [
+    "key_encipherment",
+    "digital_signature",
+    "server_auth",
+  ]
+}
+
+resource "aws_acm_certificate" "backend" {
+  private_key      = tls_private_key.backend.private_key_pem
+  certificate_body = tls_self_signed_cert.backend.cert_pem
+
+  lifecycle {
+    create_before_destroy = true
+  }
+}
+
 resource "aws_lb_listener" "backend_http" {
   load_balancer_arn = aws_lb.backend.arn
   port              = 80
   protocol          = "HTTP"
+
+  default_action {
+    type = "redirect"
+
+    redirect {
+      port        = "443"
+      protocol    = "HTTPS"
+      status_code = "HTTP_301"
+    }
+  }
+}
+
+resource "aws_lb_listener" "backend_https" {
+  load_balancer_arn = aws_lb.backend.arn
+  port              = 443
+  protocol          = "HTTPS"
+  ssl_policy        = "ELBSecurityPolicy-2016-08"
+  certificate_arn   = aws_acm_certificate.backend.arn
 
   default_action {
     type             = "forward"
@@ -309,10 +343,60 @@ resource "aws_lb_listener" "backend_http" {
   }
 }
 
+# Self-signed certificate for frontend ALB
+resource "tls_private_key" "frontend" {
+  algorithm = "RSA"
+  rsa_bits  = 2048
+}
+
+resource "tls_self_signed_cert" "frontend" {
+  private_key_pem = tls_private_key.frontend.private_key_pem
+
+  subject {
+    common_name  = "frontend.local"
+    organization = "LearnerLab"
+  }
+
+  validity_period_hours = 24 * 365
+
+  allowed_uses = [
+    "key_encipherment",
+    "digital_signature",
+    "server_auth",
+  ]
+}
+
+resource "aws_acm_certificate" "frontend" {
+  private_key      = tls_private_key.frontend.private_key_pem
+  certificate_body = tls_self_signed_cert.frontend.cert_pem
+
+  lifecycle {
+    create_before_destroy = true
+  }
+}
+
 resource "aws_lb_listener" "frontend_http" {
   load_balancer_arn = aws_lb.frontend.arn
   port              = 80
   protocol          = "HTTP"
+
+  default_action {
+    type = "redirect"
+
+    redirect {
+      port        = "443"
+      protocol    = "HTTPS"
+      status_code = "HTTP_301"
+    }
+  }
+}
+
+resource "aws_lb_listener" "frontend_https" {
+  load_balancer_arn = aws_lb.frontend.arn
+  port              = 443
+  protocol          = "HTTPS"
+  ssl_policy        = "ELBSecurityPolicy-2016-08"
+  certificate_arn   = aws_acm_certificate.frontend.arn
 
   default_action {
     type             = "forward"
@@ -346,15 +430,18 @@ resource "aws_ecs_task_definition" "backend" {
         }
       ]
       environment = [
-        { name = "BACKEND_HOST",  value = "0.0.0.0" },
-        { name = "BACKEND_PORT",  value = tostring(var.backend_port) },
-        { name = "MEDIA_ROOT",    value = "/app/uploads" },
-        { name = "CORS_ORIGINS",  value = "*" },
+        { name = "BACKEND_HOST", value = "0.0.0.0" },
+        { name = "BACKEND_PORT", value = tostring(var.backend_port) },
+        { name = "MEDIA_ROOT", value = "/app/uploads" },
+        { name = "CORS_ORIGINS", value = "*" },
         { name = "DATABASE_URL", value = "postgresql+psycopg2://${var.db_username}:${var.db_password}@${aws_db_instance.postgres.address}:5432/${var.db_name}" },
         { name = "AWS_REGION", value = var.region },
-        { name = "S3_BUCKET_NAME",  value = aws_s3_bucket.files.bucket },
-        { name = "COGNITO_USER_POOL_ID", value = aws_cognito_user_pool.users.id },
-        { name = "COGNITO_USER_POOL_WEB_CLIENT_ID", value = aws_cognito_user_pool_client.web.id }
+        { name = "S3_BUCKET_NAME", value = aws_s3_bucket.files.bucket },
+
+        # OIDC / Keycloak
+        { name = "OIDC_ISSUER_URL", value = "https://${aws_lb.keycloak.dns_name}/realms/${var.oidc_realm}" },
+        { name = "OIDC_AUDIENCE", value = var.oidc_api_audience },
+        { name = "SSL_VERIFY", value = "false" }  # dla self-signed certs w środowisku lab
       ]
       logConfiguration = {
         logDriver = "awslogs"
@@ -388,10 +475,14 @@ resource "aws_ecs_task_definition" "frontend" {
         }
       ]
       environment = [
-        { name = "API_URL", value = "http://${aws_lb.backend.dns_name}" },
-        { name = "COGNITO_REGION", value = var.region },
-        { name = "COGNITO_USER_POOL_ID", value = aws_cognito_user_pool.users.id },
-        { name = "COGNITO_USER_POOL_WEB_CLIENT_ID", value = aws_cognito_user_pool_client.web.id }
+        { name = "API_URL", value = "https://${aws_lb.backend.dns_name}" },
+
+        # OIDC / Keycloak
+        { name = "OIDC_AUTHORITY", value = "https://${aws_lb.keycloak.dns_name}/realms/${var.oidc_realm}" },
+        { name = "OIDC_CLIENT_ID", value = var.oidc_spa_client_id },
+        { name = "OIDC_REDIRECT_URI", value = "https://${aws_lb.frontend.dns_name}/auth/callback" },
+        { name = "OIDC_POST_LOGOUT_REDIRECT_URI", value = "https://${aws_lb.frontend.dns_name}/" },
+        { name = "OIDC_SCOPE", value = "openid profile email" }
       ]
       logConfiguration = {
         logDriver = "awslogs"
@@ -414,8 +505,8 @@ resource "aws_ecs_service" "backend" {
   launch_type     = "FARGATE"
 
   network_configuration {
-    subnets         = data.aws_subnets.default.ids
-    security_groups = [aws_security_group.ecs_tasks_sg.id]
+    subnets          = data.aws_subnets.default.ids
+    security_groups  = [aws_security_group.ecs_tasks_sg.id]
     assign_public_ip = true
   }
 

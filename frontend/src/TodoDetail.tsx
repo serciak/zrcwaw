@@ -15,22 +15,22 @@ export function TodoDetail({ todoId, onClose }: TodoDetailProps) {
   const [isOpen, setIsOpen] = useState(true);
 
   useEffect(() => {
+    async function loadTodo() {
+      try {
+        setLoading(true);
+        setError(null);
+        const data = await getTodo(todoId);
+        setTodo(data);
+      } catch (err) {
+        setError('Nie udało się załadować szczegółów zadania');
+        console.error('Error loading todo:', err);
+      } finally {
+        setLoading(false);
+      }
+    }
+
     loadTodo();
   }, [todoId]);
-
-  async function loadTodo() {
-    try {
-      setLoading(true);
-      setError(null);
-      const data = await getTodo(todoId);
-      setTodo(data);
-    } catch (err) {
-      setError('Nie udało się załadować szczegółów zadania');
-      console.error('Error loading todo:', err);
-    } finally {
-      setLoading(false);
-    }
-  }
 
   function handleClose() {
     setIsOpen(false);
@@ -102,4 +102,3 @@ export function TodoDetail({ todoId, onClose }: TodoDetailProps) {
     </div>
   );
 }
-

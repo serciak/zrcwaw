@@ -6,30 +6,43 @@ services:
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB: todos
     ports: ["5432:5432"]
-    volumes:
-      - db_data:/var/lib/postgresql/data
+#    volumes:
+#      - db_data:/var/lib/postgresql/data
 
+  keycloak:
+    image: quay.io/keycloak/keycloak:25.0.6
+    command: ["start-dev", "--import-realm"]
+    environment:
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: admin
+    ports: ["8081:8080"]
+    volumes:
+      - ./keycloak/realm-export.json:/opt/keycloak/data/import/realm-export.json:ro
 
   backend:
     build: ./backend
     env_file: ./backend/.env
-    depends_on: [db]
+    environment:
+      OIDC_ISSUER_URL: http://keycloak:8080/realms/todos
+      OIDC_ISSUER_URL_EXTERNAL: http://localhost:8081/realms/todos
+      OIDC_AUDIENCE: todos-api
+    depends_on: [db, keycloak]
     ports: ["8000:8000"]
     volumes:
       - backend_uploads:/app/uploads
-
 
   frontend:
     build: ./frontend
     environment:
       API_URL: http://localhost:8000
-      COGNITO_USER_POOL_ID: us-east-1_r3dHeBtUd
-      COGNITO_USER_POOL_WEB_CLIENT_ID: 6bml2s804ce03hlg2n3vn93r0p
+      OIDC_AUTHORITY: http://localhost:8081/realms/todos
+      OIDC_CLIENT_ID: todos-spa
+      OIDC_REDIRECT_URI: http://localhost:8080/auth/callback
+      OIDC_POST_LOGOUT_REDIRECT_URI: http://localhost:8080/
+      OIDC_SCOPE: openid profile email
     depends_on: [backend]
     ports: ["8080:80"]
 
-
 volumes:
-  db_data:
+#  db_data:
   backend_uploads:
-

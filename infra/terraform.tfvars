@@ -6,3 +6,11 @@ frontend_port  = 80
 db_username    = "todosuser"
 db_password    = "todospassword"
 db_name        = "todosdb"
+
+# Keycloak / OIDC
+keycloak_admin_password = "change-me"
+keycloak_db_password    = "todospassword"
+keycloak_db_name        = "todosdb"
+oidc_realm              = "todos"
+oidc_spa_client_id      = "todos-spa"
+oidc_api_audience       = "todos-api"

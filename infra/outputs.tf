@@ -8,16 +8,17 @@ output "frontend_url" {
   value       = "http://${aws_lb.frontend.dns_name}"
 }
 
-output "rds_endpoint" {
-  description = "RDS PostgreSQL Endpoint"
-  value = aws_db_instance.postgres.address
+output "keycloak_url" {
+  description = "Public Keycloak URL (HTTPS)"
+  value       = "https://${aws_lb.keycloak.dns_name}"
 }
 
-output "cognito_user_pool_id" {
-  description = "Cognito User Pool ID"
-  value = aws_cognito_user_pool.users.id
+output "oidc_issuer_url" {
+  description = "OIDC issuer URL used by backend/frontend"
+  value       = "https://${aws_lb.keycloak.dns_name}/realms/${var.oidc_realm}"
 }
-output "cognito_app_client_id" {
-  description = "Cognito App Client ID"
-  value = aws_cognito_user_pool_client.web.id
+
+output "rds_endpoint" {
+  description = "RDS PostgreSQL Endpoint"
+  value       = aws_db_instance.postgres.address
 }
