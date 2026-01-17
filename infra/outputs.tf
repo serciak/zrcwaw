@@ -22,3 +22,14 @@ output "rds_endpoint" {
   description = "RDS PostgreSQL Endpoint"
   value       = aws_db_instance.postgres.address
 }
+
+output "minio_api_url" {
+  description = "MinIO S3 API URL (HTTPS)"
+  value       = "https://${aws_lb.minio.dns_name}"
+}
+
+output "minio_console_url" {
+  description = "MinIO Console URL (HTTPS)"
+  value       = "https://${aws_lb.minio.dns_name}:9001"
+}
+

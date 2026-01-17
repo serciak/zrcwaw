@@ -14,3 +14,9 @@ keycloak_db_name        = "todosdb"
 oidc_realm              = "todos"
 oidc_spa_client_id      = "todos-spa"
 oidc_api_audience       = "todos-api"
+
+# MinIO (S3-compatible storage)
+minio_root_user     = "minioadmin"
+minio_root_password = "minioadmin123"
+minio_bucket_name   = "todos-files"
+

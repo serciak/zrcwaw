@@ -43,25 +43,28 @@ resource "random_id" "suffix" {
   byte_length = 4
 }
 
-resource "aws_s3_bucket" "files" {
-  bucket        = "todos-files-bucket-${random_id.suffix.hex}"
-  force_destroy = true
-}
-
-resource "aws_s3_bucket_public_access_block" "files" {
-  bucket                  = aws_s3_bucket.files.id
-  block_public_acls       = true
-  block_public_policy     = true
-  ignore_public_acls      = true
-  restrict_public_buckets = true
-}
-
-resource "aws_vpc_endpoint" "s3" {
-  vpc_id            = data.aws_vpc.default.id
-  service_name      = "com.amazonaws.${var.region}.s3"
-  vpc_endpoint_type = "Gateway"
-  route_table_ids   = data.aws_route_tables.default.ids
-}
+# S3 bucket removed - using MinIO instead
+# If you need AWS S3, uncomment the following resources:
+#
+# resource "aws_s3_bucket" "files" {
+#   bucket        = "todos-files-bucket-${random_id.suffix.hex}"
+#   force_destroy = true
+# }
+#
+# resource "aws_s3_bucket_public_access_block" "files" {
+#   bucket                  = aws_s3_bucket.files.id
+#   block_public_acls       = true
+#   block_public_policy     = true
+#   ignore_public_acls      = true
+#   restrict_public_buckets = true
+# }
+#
+# resource "aws_vpc_endpoint" "s3" {
+#   vpc_id            = data.aws_vpc.default.id
+#   service_name      = "com.amazonaws.${var.region}.s3"
+#   vpc_endpoint_type = "Gateway"
+#   route_table_ids   = data.aws_route_tables.default.ids
+# }
 
 # Log groups
 resource "aws_cloudwatch_log_group" "backend" {
@@ -436,7 +439,13 @@ resource "aws_ecs_task_definition" "backend" {
         { name = "CORS_ORIGINS", value = "*" },
         { name = "DATABASE_URL", value = "postgresql+psycopg2://${var.db_username}:${var.db_password}@${aws_db_instance.postgres.address}:5432/${var.db_name}" },
         { name = "AWS_REGION", value = var.region },
-        { name = "S3_BUCKET_NAME", value = aws_s3_bucket.files.bucket },
+
+        # MinIO (S3-compatible storage)
+        { name = "S3_BUCKET_NAME", value = var.minio_bucket_name },
+        { name = "S3_ENDPOINT_URL", value = "https://${aws_lb.minio.dns_name}" },
+        { name = "S3_PUBLIC_ENDPOINT_URL", value = "https://${aws_lb.minio.dns_name}" },
+        { name = "S3_ACCESS_KEY", value = var.minio_root_user },
+        { name = "S3_SECRET_KEY", value = var.minio_root_password },
 
         # OIDC / Keycloak
         { name = "OIDC_ISSUER_URL", value = "https://${aws_lb.keycloak.dns_name}/realms/${var.oidc_realm}" },

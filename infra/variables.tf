@@ -97,3 +97,29 @@ variable "oidc_api_audience" {
   type        = string
   default     = "todos-api"
 }
+
+# MinIO configuration
+variable "minio_image" {
+  description = "Docker image for MinIO"
+  type        = string
+  default     = "minio/minio:latest"
+}
+
+variable "minio_root_user" {
+  description = "MinIO root username"
+  type        = string
+  default     = "minioadmin"
+}
+
+variable "minio_root_password" {
+  description = "MinIO root password"
+  type        = string
+  sensitive   = true
+}
+
+variable "minio_bucket_name" {
+  description = "MinIO bucket name for file storage"
+  type        = string
+  default     = "todos-files"
+}
+
