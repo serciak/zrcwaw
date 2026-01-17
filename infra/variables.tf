@@ -27,19 +27,19 @@ variable "frontend_port" {
 }
 
 variable "db_username" {
-  description = "RDS PostgreSQL username"
+  description = "PostgreSQL username (Fargate-hosted)"
   type        = string
   default     = "todosuser"
 }
 
 variable "db_password" {
-  description = "RDS PostgreSQL password"
+  description = "PostgreSQL password (Fargate-hosted)"
   type        = string
   sensitive   = true
 }
 
 variable "db_name" {
-  description = "RDS PostgreSQL database name"
+  description = "PostgreSQL database name (Fargate-hosted)"
   type        = string
   default     = "todosdb"
 }

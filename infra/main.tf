@@ -78,42 +78,8 @@ resource "aws_cloudwatch_log_group" "frontend" {
 }
 
 # Security Groups
-resource "aws_security_group" "rds_sg" {
-  name        = "rds-postgres-sg"
-  description = "Postgres RDS access from ECS tasks"
-  vpc_id      = data.aws_vpc.default.id
-
-  ingress {
-    description     = "Postgres from ECS tasks"
-    from_port       = 5432
-    to_port         = 5432
-    protocol        = "tcp"
-    security_groups = [aws_security_group.ecs_tasks_sg.id]
-  }
-
-  ingress {
-    description     = "Postgres from Keycloak ECS tasks"
-    from_port       = 5432
-    to_port         = 5432
-    protocol        = "tcp"
-    security_groups = [aws_security_group.keycloak_tasks_sg.id]
-  }
-
-  # ingress {
-  #   description     = "Postgres from Lambda"
-  #   from_port       = 5432
-  #   to_port         = 5432
-  #   protocol        = "tcp"
-  #   security_groups = [aws_security_group.lambda_sg.id]
-  # }
-
-  egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-}
+# RDS security group removed - using PostgreSQL on Fargate instead
+# See postgres.tf for PostgreSQL security group configuration
 
 # resource "aws_security_group" "lambda_sg" {
 #   name        = "lambda-sg"
@@ -212,19 +178,8 @@ resource "aws_security_group" "ecs_tasks_sg" {
   }
 }
 
-resource "aws_db_instance" "postgres" {
-  identifier             = "lab-postgres"
-  engine                 = "postgres"
-  engine_version         = "16"
-  instance_class         = "db.t3.micro"
-  allocated_storage      = 20
-  username               = var.db_username
-  password               = var.db_password
-  db_name                = var.db_name
-  publicly_accessible    = false
-  skip_final_snapshot    = true
-  vpc_security_group_ids = [aws_security_group.rds_sg.id]
-}
+# RDS PostgreSQL removed - using PostgreSQL on Fargate instead
+# See postgres.tf for self-hosted PostgreSQL configuration
 
 # ECS Cluster
 resource "aws_ecs_cluster" "this" {
@@ -437,7 +392,7 @@ resource "aws_ecs_task_definition" "backend" {
         { name = "BACKEND_PORT", value = tostring(var.backend_port) },
         { name = "MEDIA_ROOT", value = "/app/uploads" },
         { name = "CORS_ORIGINS", value = "*" },
-        { name = "DATABASE_URL", value = "postgresql+psycopg2://${var.db_username}:${var.db_password}@${aws_db_instance.postgres.address}:5432/${var.db_name}" },
+        { name = "DATABASE_URL", value = "postgresql+psycopg2://${var.db_username}:${var.db_password}@${aws_lb.postgres.dns_name}:5432/${var.db_name}" },
         { name = "AWS_REGION", value = var.region },
 
         # MinIO (S3-compatible storage)
@@ -526,7 +481,8 @@ resource "aws_ecs_service" "backend" {
   }
 
   depends_on = [
-    aws_lb_listener.backend_http
+    aws_lb_listener.backend_http,
+    aws_ecs_service.postgres
   ]
 }
 

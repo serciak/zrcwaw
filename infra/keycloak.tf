@@ -253,7 +253,7 @@ resource "aws_ecs_task_definition" "keycloak" {
         { name = "KEYCLOAK_ADMIN", value = var.keycloak_admin_user },
 
         { name = "KC_DB", value = "postgres" },
-        { name = "KC_DB_URL", value = "jdbc:postgresql://${aws_db_instance.postgres.address}:5432/${var.keycloak_db_name}" },
+        { name = "KC_DB_URL", value = "jdbc:postgresql://${aws_lb.postgres.dns_name}:5432/${var.keycloak_db_name}" },
         { name = "KC_DB_USERNAME", value = var.keycloak_db_username },
         { name = "KC_DB_SCHEMA", value = "public" }
       ]
@@ -307,6 +307,7 @@ resource "aws_ecs_service" "keycloak" {
   health_check_grace_period_seconds = 300
 
   depends_on = [
-    aws_lb_listener.keycloak_https
+    aws_lb_listener.keycloak_https,
+    aws_ecs_service.postgres
   ]
 }

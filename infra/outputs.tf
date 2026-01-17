@@ -18,9 +18,9 @@ output "oidc_issuer_url" {
   value       = "https://${aws_lb.keycloak.dns_name}/realms/${var.oidc_realm}"
 }
 
-output "rds_endpoint" {
-  description = "RDS PostgreSQL Endpoint"
-  value       = aws_db_instance.postgres.address
+output "postgres_endpoint" {
+  description = "PostgreSQL Internal NLB DNS (Fargate)"
+  value       = "${aws_lb.postgres.dns_name}:5432"
 }
 
 output "minio_api_url" {
