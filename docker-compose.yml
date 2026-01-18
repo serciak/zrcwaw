@@ -62,7 +62,29 @@ services:
     depends_on: [backend]
     ports: ["8080:80"]
 
+  prometheus:
+    build: ./prometheus
+    ports: ["9090:9090"]
+    environment:
+      BACKEND_TARGET: backend:8000
+    depends_on: [backend]
+    volumes:
+      - prometheus_data:/prometheus
+
+  grafana:
+    build: ./grafana
+    ports: ["3000:3000"]
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+      PROMETHEUS_URL: http://prometheus:9090
+    depends_on: [prometheus]
+    volumes:
+      - grafana_data:/var/lib/grafana
+
 volumes:
 #  db_data:
   backend_uploads:
   minio_data:
+  prometheus_data:
+  grafana_data:

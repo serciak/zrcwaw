@@ -123,3 +123,27 @@ variable "minio_bucket_name" {
   default     = "todos-files"
 }
 
+# Monitoring configuration (Prometheus + Grafana)
+variable "prometheus_image" {
+  description = "Docker image for Prometheus"
+  type        = string
+}
+
+variable "grafana_image" {
+  description = "Docker image for Grafana"
+  type        = string
+  default     = "grafana/grafana:11.4.0"
+}
+
+variable "grafana_admin_user" {
+  description = "Grafana admin username"
+  type        = string
+  default     = "admin"
+}
+
+variable "grafana_admin_password" {
+  description = "Grafana admin password"
+  type        = string
+  sensitive   = true
+}
+

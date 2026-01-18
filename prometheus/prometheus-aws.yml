@@ -1,0 +1,30 @@
+# Prometheus Configuration for Todo App Monitoring (AWS Environment)
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    monitor: 'todo-app-monitor'
+    environment: 'aws-lab'
+
+scrape_configs:
+  # Prometheus self-monitoring
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+    metrics_path: /metrics
+
+  # Backend FastAPI metrics via ALB (HTTPS with self-signed cert)
+  # BACKEND_TARGET is replaced by entrypoint.sh from environment variable
+  - job_name: 'backend'
+    scheme: https
+    tls_config:
+      insecure_skip_verify: true  # Self-signed cert in lab environment
+    static_configs:
+      - targets: ['${BACKEND_TARGET}']
+        labels:
+          service: 'backend'
+          environment: 'aws-lab'
+    metrics_path: /metrics
+    scrape_interval: 10s
+    scrape_timeout: 5s
+

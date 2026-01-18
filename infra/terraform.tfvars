@@ -20,3 +20,9 @@ minio_root_user     = "minioadmin"
 minio_root_password = "minioadmin123"
 minio_bucket_name   = "todos-files"
 
+# Monitoring (Prometheus + Grafana)
+prometheus_image       = "docker.io/serciak/todos-prometheus:latest"
+grafana_image          = "docker.io/serciak/todos-grafana:latest"
+grafana_admin_user     = "admin"
+grafana_admin_password = "admin123"
+

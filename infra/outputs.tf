@@ -33,3 +33,13 @@ output "minio_console_url" {
   value       = "https://${aws_lb.minio.dns_name}:9001"
 }
 
+output "grafana_url" {
+  description = "Grafana Dashboard URL (HTTPS)"
+  value       = "https://${aws_lb.monitoring.dns_name}"
+}
+
+output "prometheus_url" {
+  description = "Prometheus URL (HTTP)"
+  value       = "http://${aws_lb.monitoring.dns_name}:9090"
+}
+
